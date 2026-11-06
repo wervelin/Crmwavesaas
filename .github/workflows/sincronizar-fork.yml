@@ -1,0 +1,41 @@
+name: Sincronizar Fork com Repo Oficial
+
+on:
+  schedule:
+    # Roda todos os dias às 04:00 UTC (01:00 horário de Brasília)
+    - cron: '0 4 * * *'
+  workflow_dispatch: # Permite rodar manualmente clicando no botão do GitHub
+
+jobs:
+  sincronizar:
+    name: Sincronizar Upstream e Tags
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout do Repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sincronizar Código e Tags do Oficial
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # 1. Adiciona o repositório oficial como upstream
+          git remote add upstream https://github.com/melgarafael/DeskcommCRM.git || true
+
+          # 2. Puxa os commits mais recentes e todas as tags de versão
+          git fetch upstream main --tags
+
+          # 3. Atualiza a branch main
+          git checkout main
+          git merge upstream/main --ff-only || git merge upstream/main -m "merge: sincronizacao automatica com upstream"
+
+          # 4. Envia os commits e as tags oficiais para o seu fork
+          git push origin main
+          git push origin --tags
+
